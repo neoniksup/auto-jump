@@ -1,0 +1,166 @@
+
+--[[
+    ROCKET | EVADE AUTO JUMP
+    Toggle: J
+]]
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Cleanup
+local Old = CoreGui:FindFirstChild("RocketEvade")
+if Old then Old:Destroy() end
+
+local Enabled = false
+local Humanoid = nil
+local WasGrounded = false
+local Connections = {}
+
+-- GUI
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "RocketEvade"
+Gui.ResetOnSpawn = false
+Gui.Parent = CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.fromOffset(250, 155)
+Frame.Position = UDim2.new(0.5, -125, 0.5, -77)
+Frame.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Parent = Gui
+
+Instance.new("UICorner", Frame).CornerRadius =
+    UDim.new(0, 9)
+
+local Border = Instance.new("UIStroke", Frame)
+Border.Color = Color3.fromRGB(220, 25, 40)
+Border.Thickness = 2
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -45, 0, 40)
+Title.Position = UDim2.fromOffset(12, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "ROCKET | EVADE"
+Title.TextColor3 = Color3.fromRGB(255, 40, 50)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Frame
+
+-- Close
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(28, 28)
+Close.Position = UDim2.new(1, -35, 0, 6)
+Close.BackgroundColor3 = Color3.fromRGB(110, 20, 25)
+Close.Text = "X"
+Close.TextColor3 = Color3.new(1, 1, 1)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 13
+Close.Parent = Frame
+
+Instance.new("UICorner", Close).CornerRadius =
+    UDim.new(0, 5)
+
+-- Toggle
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(1, -30, 0, 43)
+Button.Position = UDim2.fromOffset(15, 53)
+Button.BackgroundColor3 = Color3.fromRGB(100, 20, 25)
+Button.Text = "AUTO JUMP: OFF"
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.Font = Enum.Font.GothamBold
+Button.TextSize = 14
+Button.Parent = Frame
+
+Instance.new("UICorner", Button).CornerRadius =
+    UDim.new(0, 6)
+
+-- Info
+local Info = Instance.new("TextLabel")
+Info.Size = UDim2.new(1, 0, 0, 35)
+Info.Position = UDim2.fromOffset(0, 108)
+Info.BackgroundTransparency = 1
+Info.Text = "PRESS J TO TOGGLE"
+Info.TextColor3 = Color3.fromRGB(150, 150, 150)
+Info.Font = Enum.Font.Gotham
+Info.TextSize = 11
+Info.Parent = Frame
+
+-- Toggle function
+local function SetEnabled(Value)
+    Enabled = Value
+
+    Button.Text = Enabled
+        and "AUTO JUMP: ON"
+        or "AUTO JUMP: OFF"
+
+    Button.BackgroundColor3 = Enabled
+        and Color3.fromRGB(190, 25, 35)
+        or Color3.fromRGB(100, 20, 25)
+
+    if not Enabled then
+        WasGrounded = false
+    end
+end
+
+Button.MouseButton1Click:Connect(function()
+    SetEnabled(not Enabled)
+end)
+
+-- Keyboard
+Connections.Input = UIS.InputBegan:Connect(function(Input, Processed)
+    if Processed then return end
+
+    if Input.KeyCode == Enum.KeyCode.J then
+        SetEnabled(not Enabled)
+    end
+end)
+
+-- Character
+local function SetupCharacter(Character)
+    Humanoid = Character:WaitForChild("Humanoid")
+    WasGrounded = false
+end
+
+if Player.Character then
+    SetupCharacter(Player.Character)
+end
+
+Connections.Character = Player.CharacterAdded:Connect(SetupCharacter)
+
+-- Auto Jump
+Connections.Jump = RunService.Heartbeat:Connect(function()
+    if not Enabled then return end
+    if not Humanoid then return end
+    if Humanoid.Health <= 0 then return end
+
+    local Grounded =
+        Humanoid.FloorMaterial ~= Enum.Material.Air
+
+    if Grounded and not WasGrounded then
+        Humanoid:ChangeState(
+            Enum.HumanoidStateType.Jumping
+        )
+    end
+
+    WasGrounded = Grounded
+end)
+
+-- GUI Drag
+local DragDetector = Instance.new("UIDragDetector")
+DragDetector.Parent = Frame
+
+-- Close GUI
+Close.MouseButton1Click:Connect(function()
+    for _, Connection in pairs(Connections) do
+        Connection:Disconnect()
+    end
+
+    Gui:Destroy()
+end)
